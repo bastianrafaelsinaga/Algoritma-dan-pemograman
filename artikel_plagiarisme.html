@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Analisis Efektivitas Algoritma Brute Force Dan Rabin-Karp Dalam Mendeteksi Plagiarisme</title>
+<style>
+  body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background-color: #f2f2f2; }
+  code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+  pre { background-color: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+</style>
+</head>
+<body>
+<p>Analisis Efektivitas Algoritma Brute Force Dan Rabin-Karp Dalam Mendeteksi Plagiarisme
+M. Tata Alfarizi1; Sartika Pratiwi Manullang2; Lastri3; Bastian Rafael Sinaga 4
+Program Studi Fisika, Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Negeri Medan, Medan, Indonesia1,2,3,4
+[alfarizimtata@gmail.com]; [manullangtiwi@gmail.com]; [lastari2022@gmail.com]; [bastianrafaelsinaga@gmail.com]</p>
+<p>ABSTRAK
+Kemudahan mengakses sumber digital membuat kasus plagiarisme pada karya tulis akademik terus bertambah. Pencocokan string menjadi salah satu cara paling sederhana untuk mendeteksinya, yaitu menelusuri apakah potongan kalimat dari dokumen yang diperiksa muncul pada dokumen sumber. Penelitian ini bertujuan membandingkan efektivitas algoritma Brute Force dan Rabin-Karp untuk keperluan tersebut. Metode yang digunakan adalah eksperimen dengan implementasi Python pada korpus sintetis berukuran 1.000 hingga 50.000 kata, dengan mengukur waktu eksekusi, jumlah perbandingan karakter, dan jumlah spurious hit. Hasil menunjukkan bahwa kedua algoritma menemukan kecocokan yang sama persis sehingga akurasinya setara, tetapi efisiensinya berbeda. Pada teks bahasa alami acak, Brute Force sekitar 2,2 kali lebih cepat karena rata-rata hanya membutuhkan sekitar 1,03 perbandingan karakter per posisi. Pada kasus terburuk berupa teks berulang, Rabin-Karp sekitar 9 kali lebih cepat dan nyaris tidak memerlukan perbandingan karakter. Modulus hash yang terlalu kecil memunculkan ribuan spurious hit dan menghapus keunggulan Rabin-Karp. Dengan demikian, Brute Force memadai untuk dokumen pendek dan teks alami, sedangkan Rabin-Karp lebih cocok untuk pola panjang, teks berulang, atau pencocokan banyak pola menggunakan hash set.
+Kata Kunci: Brute Force; deteksi plagiarisme; pencocokan string; Rabin-Karp; rolling hash</p>
+<p>ABSTRACT
+Easy access to digital sources keeps increasing plagiarism in academic writing. String matching is one of the simplest ways to detect it, by checking whether a passage from a suspected document appears in a source document. This study compares the effectiveness of the Brute Force and Rabin-Karp algorithms for that purpose. The method was an experiment using Python implementations on a synthetic corpus of 1,000 to 50,000 words, measuring execution time, the number of character comparisons, and the number of spurious hits. The results show that both algorithms find exactly the same matches, so their accuracy is equal, but their efficiency differs. On random natural-language text, Brute Force is about 2.2 times faster because it needs only about 1.03 character comparisons per position on average. In the worst case of repetitive text, Rabin-Karp is about 9 times faster and requires almost no character comparisons. A hash modulus that is too small produces thousands of spurious hits and cancels the advantage of Rabin-Karp. Therefore, Brute Force is adequate for short documents and natural text, whereas Rabin-Karp is better suited to long patterns, repetitive text, or multi-pattern matching using a hash set.
+Keywords: Brute Force; plagiarism detection; Rabin-Karp; rolling hash; string matching</p>
+<p>PENDAHULUAN
+Latar Belakang
+Plagiarisme pada dasarnya berarti memakai gagasan, tulisan, atau hasil kerja orang lain tanpa menyebutkan sumbernya dengan semestinya. Maurer et al. (2006) menjelaskan bahwa bentuknya beragam, dari sekadar copy-paste sampai parafrase dan terjemahan, sehingga perangkat lunak pendeteksi memang dibutuhkan di dunia pendidikan. Dari sekian banyak teknik, pencocokan string adalah yang paling mendasar, sebab penyalinan langsung memang bentuk plagiarisme yang paling sering ditemui.</p>
+<p>Masalah pencocokan string bisa dirumuskan begini. Misalkan ada teks T sepanjang n karakter dan pola P sepanjang m karakter; kita ingin mencari semua posisi i yang memenuhi T[i..i+m−1] = P (Gusfield, 1997). Algoritma Brute Force menyelesaikannya dengan mencoba pola di setiap posisi teks, dan kasus terburuknya berkompleksitas O(nm) (Cormen et al., 2022; Levitin, 2012). Algoritma Rabin-Karp, yang diperkenalkan oleh Karp dan Rabin (1987), memakai fungsi hash bergulir (rolling hash), jadi karakter baru dibandingkan hanya kalau hash jendela teks sama dengan hash pola. Waktu harapannya O(n + m).</p>
+<p>Dalam deteksi plagiarisme, pola yang dicari biasanya satu kalimat atau beberapa kata, sementara teks yang diperiksa adalah dokumen sumber yang panjang. Kedua algoritma punya karakter kinerja yang berbeda, jadi memilih salah satunya sebaiknya didasarkan pada data percobaan, bukan hanya analisis asimptotik. Karena itu, kami mengukur langsung waktu eksekusi, jumlah perbandingan karakter, dan jumlah tabrakan hash pada berbagai ukuran teks dan panjang pola.</p>
+<p>Penelitian sebelumnya banyak membahas teknik sidik jari dokumen, misalnya winnowing yang memilih sebagian kecil hash dari seluruh potongan teks (Schleimer et al., 2003) dan shingling yang menilai kemiripan dokumen lewat himpunan potongan kata (Broder, 1997). Kerangka evaluasi sistem deteksi plagiarisme dibahas oleh Potthast et al. (2010), sedangkan penerapannya pada kode program terlihat pada JPlag (Prechelt et al., 2002). Namun, perilaku dasar algoritma pencocokan eksak, yang menjadi komponen paling bawah sistem-sistem itu, jarang disajikan dalam angka yang rinci, terutama soal selisih antara jumlah perbandingan karakter dan biaya menghitung hash. Artikel ini mencoba mengisi celah tersebut lewat pengukuran yang bisa ditelusuri dan diulang.</p>
+<p>Rumusan Masalah
+Artikel ini berusaha menjawab tiga pertanyaan berikut.
+Seberapa akurat Brute Force dan Rabin-Karp dalam menemukan potongan teks yang disalin?
+Bagaimana perbandingan efisiensi keduanya, baik dari waktu eksekusi maupun jumlah perbandingan karakter, pada berbagai ukuran teks dan panjang pola?
+Seberapa besar pengaruh pilihan modulus hash terhadap kinerja Rabin-Karp?</p>
+<p>Tujuan dan Batasan Penelitian
+Tujuan penelitian ini adalah membandingkan efektivitas kedua algoritma dari sisi ketepatan hasil dan efisiensi, lalu menyusun rekomendasi pemakaiannya untuk deteksi plagiarisme yang sederhana.
+Penelitian ini hanya membahas pencocokan string eksak (exact matching) pada teks berbasis karakter. Parafrase, penggantian sinonim, dan plagiarisme semantik tidak dicakup. Teknik lanjutan seperti winnowing dan shingling hanya disinggung sebagai konteks (Broder, 1997; Schleimer et al., 2003).</p>
+<p>Kajian Teori
+Bagian ini menjelaskan konsep dasar yang dipakai dalam percobaan, mulai dari peran pencocokan string dalam deteksi plagiarisme sampai cara kerja dan kompleksitas kedua algoritma, lengkap dengan contoh hitungannya.</p>
+<p>Kedudukan Pencocokan String dalam Deteksi Plagiarisme
+Plagiarisme bisa dibagi menjadi penyalinan langsung kata demi kata, penyalinan dengan perubahan kecil (misalnya mengganti kata atau urutannya), parafrase, dan terjemahan (Maurer et al., 2006; Potthast et al., 2010). Pencocokan string eksak hanya ampuh untuk golongan pertama. Meski begitu, golongan ini tetap penting: ia menjadi lapisan awal sebelum teknik yang lebih mahal dipakai, dan banyak sistem praktis membangun sidik jari dokumen dari potongan string yang di-hash (Broder, 1997; Manber, 1994; Schleimer et al., 2003). Jadi, memahami algoritma pencocokan eksak sama dengan memahami fondasi teknik-teknik tersebut.</p>
+<p>Brute Force: Cara Kerja dan Contoh Penelusuran
+Brute Force menggeser pola satu posisi ke kanan setiap kali tidak cocok, tanpa mengingat apa pun dari perbandingan sebelumnya (Cormen et al., 2022; Levitin, 2012). Sebagai contoh, ambil teks T = "ababcab" (n = 7) dan pola P = "abcab" (m = 5). Ada n − m + 1 = 3 posisi yang harus dicoba:
+Posisi 0: "a" = "a", "b" = "b", kemudian "a" ≠ "c". Percobaan gagal setelah 3 perbandingan.
+Posisi 1: "b" ≠ "a". Percobaan gagal setelah 1 perbandingan.
+Posisi 2: kelima karakter cocok, sehingga kecocokan ditemukan dengan 5 perbandingan.
+Totalnya 9 perbandingan. Perhatikan bahwa banyaknya perbandingan di tiap posisi bergantung pada seberapa panjang awalan pola yang kebetulan sama dengan teks. Inilah yang nanti menjelaskan mengapa kinerja pada teks alami dan teks berulang berbeda jauh.</p>
+<p>Rabin-Karp: Fungsi Hash, Rolling Hash, dan Contoh Angka
+Rabin-Karp memperlakukan string sepanjang m sebagai bilangan berbasis B, lalu mengambil sisa baginya terhadap modulus Q (Karp &amp; Rabin, 1987; Goodrich &amp; Tamassia, 2014). Hash pola dihitung dengan skema Horner dalam waktu O(m):
+    H(P) = ( Σ P[i] · Bm−1−i ) mod Q, untuk i = 0 sampai m − 1  (1)
+Hash jendela berikutnya tidak dihitung dari nol, tetapi diturunkan dari hash jendela sebelumnya: karakter paling kiri dibuang dan karakter baru di kanan ditambahkan.
+    Hi+1 = ( ( Hi − T[i] · Bm−1 ) · B + T[i+m] ) mod Q  (2)</p>
+<p>Contoh angkanya mengikuti contoh klasik di Cormen et al. (2022). Teks digit T = 2359023141526739921, pola P = 31415, basis B = 10, dan modulus Q = 13, sehingga ada 19 − 5 + 1 = 15 jendela.
+Hash pola: 31415 mod 13 = 7.
+Konstanta pergeseran: 104 mod 13 = 3.
+Jendela di posisi 5 berisi 23141 dengan hash 1. Hash jendela posisi 6 didapat dari (10 × (1 − 2 × 3) + 5) mod 13 = (−45) mod 13 = 7. Nilainya sama dengan hash pola, jadi karakternya dibandingkan dan ternyata memang cocok (31415).
+Jendela di posisi 12 berisi 67399 dengan hash 7, sama dengan hash pola. Tetapi setelah karakternya dibandingkan, kedua string ternyata berbeda. Kejadian ini disebut spurious hit, yaitu tabrakan hash yang tidak membuat hasil salah, hanya menambah satu kali verifikasi.</p>
+<p>Contoh ini menunjukkan dua hal sekaligus: perbandingan karakter bisa dilewati pada 13 dari 15 jendela, tetapi hash yang sama belum tentu berarti cocok, sehingga verifikasi tetap perlu.</p>
+<p>Kompleksitas dan Peluang Tabrakan
+Brute Force. Kasus terburuk terjadi bila setiap posisi hampir menghabiskan seluruh pola sebelum gagal, sehingga jumlah perbandingannya (n − m + 1) × m, atau O(nm). Kasus terbaik terjadi bila karakter pertama selalu berbeda, dengan sekitar n perbandingan. Bila karakter teks dianggap acak seragam pada alfabet berukuran σ, rata-rata perbandingan per posisi mendekati σ/(σ − 1), sedikit di atas 1.
+Rabin-Karp. Hash pola dan hash jendela pertama masing-masing dihitung dalam O(m), sedangkan tiap pergeseran hanya O(1), sehingga pemindaian berjalan dalam O(n). Verifikasi dilakukan pada setiap kecocokan asli dan setiap tabrakan, masing-masing sampai m perbandingan. Jika hash tersebar merata pada Q nilai, peluang tabrakan per posisi sekitar 1/Q, sehingga spurious hit yang diharapkan sekitar (n − m + 1)/Q (Karp &amp; Rabin, 1987). Selama Q cukup besar, waktu harapan totalnya O(n + m). Kalau Q terlalu kecil, atau masukan sengaja dibuat agar hash bertabrakan, waktunya memburuk menjadi O(nm).
+Kebutuhan memori. Kedua algoritma hanya butuh memori tambahan yang konstan di luar teks itu sendiri.</p>
+<p>Dua rumus ini, σ/(σ − 1) dan (n − m + 1)/Q, akan kami cocokkan dengan hasil pengukuran di bagian Hasil dan Pembahasan.</p>
+<p>METODE
+Jenis Penelitian
+Penelitian berjalan dalam tiga tahap: menyiapkan data uji, menjalankan kedua algoritma pada data itu, lalu menganalisis hasilnya terhadap rumus teoretis. Dengan alur ini, setiap angka yang dilaporkan bisa ditelusuri kembali ke skenario dan parameter yang menghasilkannya.
+Penelitian ini bersifat eksperimental-komparatif: dua algoritma diimplementasikan, dijalankan pada data uji yang sama, lalu dibandingkan dengan metrik yang terukur.</p>
+<p>Algoritma yang Dibandingkan
+Brute Force. Untuk setiap posisi i dari 0 sampai n − m, pola dicocokkan karakter demi karakter dengan T[i..i+m−1]. Pencocokan berhenti begitu ketemu karakter yang berbeda. Kasus terburuk terjadi bila perbedaan baru muncul di ujung pola pada setiap posisi, misalnya pola "aaa…ab" pada teks "aaaa…a" (Cormen et al., 2022; Levitin, 2012).
+Rabin-Karp. Hash pola dihitung sekali, sedangkan hash jendela teks sepanjang m diperbarui secara bergulir dalam waktu konstan memakai persamaan (2), dengan basis B = 256 dan modulus Q. Karakter baru dibandingkan kalau hash jendela sama dengan hash pola. Pasangan string yang hash-nya sama tetapi isinya berbeda disebut spurious hit (Goodrich &amp; Tamassia, 2014; Karp &amp; Rabin, 1987).</p>
+<p>Data Uji
+Korpus sintetis dibuat dari kosakata 3.000 kata acak berhuruf kecil dengan panjang 3 sampai 9 karakter. Dokumen disusun dengan memilih kata secara acak (seed = 42), dan pola diambil dari potongan dokumen itu sendiri untuk meniru penyalinan langsung. Ada lima skenario yang diuji:
+Ukuran teks: 1.000, 5.000, 20.000, dan 50.000 kata dengan pola sepanjang 5 kata.
+Panjang pola: 3, 5, 10, 20, dan 40 kata pada teks 20.000 kata.
+Kasus terburuk: teks berupa huruf "a" yang diulang (5.000 dan 20.000 karakter) dengan pola 50 huruf "a" yang diakhiri "b".
+Banyak pola: 20 kalimat (masing-masing 8 kata) dicari pada satu dokumen 20.000 kata.
+Pengaruh modulus: Q = 101, 10.007, dan 1.000.003.</p>
+<p>Metrik dan Lingkungan Pengujian
+Ada empat hal yang diukur: (a) waktu eksekusi dalam milidetik, diambil dari yang terbaik di antara tiga kali pengulangan dengan time.perf_counter; (b) jumlah perbandingan karakter; (c) jumlah spurious hit; dan (d) kesamaan posisi kecocokan yang ditemukan. Implementasinya memakai Python 3 murni tanpa pustaka pencocokan bawaan. Karena Python bahasa terinterpretasi, waktu mutlaknya tidak bisa disamakan dengan implementasi di C atau Java. Itulah sebabnya jumlah perbandingan karakter dipakai sebagai metrik pendukung yang tidak bergantung pada bahasa pemrograman.</p>
+<p>Implementasi
+Kedua algoritma ditulis sebagai fungsi yang mengembalikan daftar posisi kecocokan beserta jumlah perbandingan karakter. Penghitungnya dipasang tepat di dalam perulangan perbandingan, jadi angkanya benar-benar mencerminkan operasi yang terjadi, bukan perkiraan. Kodenya ditampilkan pada Gambar 1.</p>
+<pre><code class="language-python">def brute_force(t, p):
+    n, m = len(t), len(p)
+    # Jika pattern lebih panjang dari text atau pattern kosong
+    if m &gt; n or m == 0:
+        return [], 0
+
+    cmp_count, hasil = 0, []
+    for i in range(n - m + 1):
+        j = 0
+        while j &lt; m:
+            cmp_count += 1
+            if t[i + j] != p[j]:
+                break
+            j += 1
+        if j == m:
+            hasil.append(i)
+    return hasil, cmp_count
+
+def rabin_karp(t, p, B=256, Q=1000003):
+    n, m = len(t), len(p)
+    # Perlindungan agar tidak error jika pattern lebih panjang
+    if m &gt; n or m == 0:
+        return [], 0, 0
+
+    hasil, spurious, cmp_count = [], 0, 0
+    h = pow(B, m - 1, Q)          # B^(m-1) mod Q
+    hp = ht = 0
+
+    for i in range(m):            # hash pola &amp; jendela pertama
+        hp = (hp * B + ord(p[i])) % Q
+        ht = (ht * B + ord(t[i])) % Q
+
+    for i in range(n - m + 1):
+        if hp == ht:              # hash sama -&gt; verifikasi karakter
+            cocok = True
+            for j in range(m):
+                cmp_count += 1
+                if t[i + j] != p[j]:
+                    cocok = False
+                    break
+            if cocok:
+                hasil.append(i)
+            else:
+                spurious += 1
+
+        if i &lt; n - m:             # geser jendela (rolling hash)
+            ht = ((ht - ord(t[i]) * h) * B + ord(t[i + m])) % Q
+
+    return hasil, cmp_count, spurious
+
+# ==========================================
+# BAGIAN PENGUJIAN (KODE TAMBAHAN)
+# ==========================================
+# 1. Tentukan teks dan pola yang mau dicari
+teks = &quot;ABABDABACDABABCABAB&quot;
+pola = &quot;ABABCABAB&quot;
+
+# 2. Panggil fungsi Brute Force dan cetak hasilnya
+hasil_bf, cmp_bf = brute_force(teks, pola)
+print(&quot;--- Hasil Brute Force ---&quot;)
+print(f&quot;Ditemukan di indeks : {hasil_bf}&quot;)
+print(f&quot;Jumlah perbandingan : {cmp_bf}
+&quot;)
+
+# 3. Panggil fungsi Rabin-Karp dan cetak hasilnya
+hasil_rk, cmp_rk, spurious = rabin_karp(teks, pola)
+print(&quot;--- Hasil Rabin-Karp ---&quot;)
+print(f&quot;Ditemukan di indeks : {hasil_rk}&quot;)
+print(f&quot;Jumlah perbandingan : {cmp_rk}&quot;)
+print(f&quot;Spurious hit        : {spurious}&quot;)
+</code></pre>
+<p>Gambar 1. Implementasi Python algoritma Brute Force dan Rabin-Karp</p>
+<p>Pada Rabin-Karp, pow(B, m - 1, Q) dihitung sekali di awal. Hasil pengurangan bisa negatif, tetapi operator % di Python selalu memberi nilai non-negatif, jadi tidak perlu koreksi tambahan.</p>
+<p>Prosedur Pengujian dan Pembuktian Kebenaran
+Setiap skenario dijalankan dalam empat langkah. Pertama, teks dibuat dengan seed tetap supaya percobaan bisa diulang. Kedua, pola disalin dari bagian tengah teks sehingga pasti ada minimal satu kecocokan asli. Ketiga, kedua algoritma dijalankan dan daftar posisi yang dihasilkan dibandingkan. Keempat, waktu diukur tiga kali dan nilai terkecil diambil untuk meredam gangguan proses lain di sistem. Nilai terkecil dipilih karena gangguan hanya bisa menambah waktu, tidak pernah mengurangi.</p>
+<p>Keandalan hasil dicek dengan dua cara. Pertama, daftar posisi dari kedua algoritma harus sama persis di setiap skenario. Kedua, jumlah perbandingan hasil pengukuran dicocokkan dengan rumus teoretis di bagian Kajian Teori, yaitu kasus terburuk Brute Force, σ/(σ − 1), dan (n − m + 1)/Q. Kalau teori dan data cocok, berarti implementasi dan alat ukurnya bekerja dengan benar.</p>
+<p>HASIL DAN PEMBAHASAN
+Akurasi
+Di semua skenario, kedua algoritma menemukan posisi kecocokan yang sama persis. Ini sesuai dengan teori: Rabin-Karp selalu memverifikasi hash yang sama lewat perbandingan karakter, sehingga spurious hit tidak membuat hasil salah dan hanya menambah biaya (Karp &amp; Rabin, 1987). Jadi perbedaan keduanya ada pada efisiensi, bukan akurasi.</p>
+<p>Pengaruh Ukuran Teks
+Hasil pengukuran untuk berbagai ukuran teks ada di Tabel 1.
+Tabel 1. Waktu eksekusi dan jumlah perbandingan karakter berdasarkan ukuran teks
+| Jumlah kata | Karakter | Brute Force (ms) | BF perbandingan | Rabin-Karp (ms) | RK perbandingan |
+| --- | --- | --- | --- | --- | --- |
+| 1.000 | 6.914 | 0,7 | 7.171 | 1,7 | 37 |
+| 5.000 | 34.719 | 4,1 | 36.017 | 9,0 | 28 |
+| 20.000 | 139.860 | 15,1 | 144.656 | 35,1 | 35 |
+| 50.000 | 348.916 | 39,5 | 361.678 | 88,3 | 39 |
+Sumber: data hasil eksperimen. BF = Brute Force; RK = Rabin-Karp.</p>
+<p>Waktu kedua algoritma naik secara linear mengikuti ukuran teks. Brute Force hanya melakukan sekitar 1,03 perbandingan karakter per posisi, karena pada teks alami hampir semua posisi sudah gagal di karakter pertama. Artinya, kasus terburuk O(nm) tidak muncul pada teks bahasa alami. Rabin-Karp hanya melakukan 28 sampai 39 perbandingan karakter, yaitu verifikasi satu kecocokan asli ditambah paling banyak satu spurious hit, jauh lebih sedikit daripada Brute Force. Namun, setiap posisi tetap butuh operasi hash (perkalian, pengurangan, modulo) yang lebih mahal daripada satu perbandingan karakter. Akibatnya, waktu aktual Rabin-Karp justru sekitar 2,2 sampai 2,4 kali lebih lambat. Temuan ini menunjukkan bahwa keunggulan asimptotik belum tentu berarti lebih cepat di praktik (Cormen et al., 2022; Goodrich &amp; Tamassia, 2014).</p>
+<p>Pengaruh Panjang Pola
+Pada teks 20.000 kata, waktu Brute Force hampir tidak berubah (sekitar 15 ms) untuk pola 3 sampai 40 kata, dengan jumlah perbandingan karakter antara 144.163 dan 144.171. Waktu Rabin-Karp juga cukup stabil, yaitu 34,5 sampai 38,6 ms, karena rolling hash tidak bergantung pada panjang pola. Panjang pola hanya memengaruhi biaya verifikasi, dan itu kecil karena kecocokan jarang terjadi. Pada pola 40 kata, Rabin-Karp mengalami satu spurious hit, sesuai dengan peluang tabrakan hash sekitar 1/Q per posisi.</p>
+<p>Jadi, untuk pola berupa kalimat di dokumen akademik, panjang pola bukan faktor penentu pilihan algoritma. Yang lebih berpengaruh adalah seberapa sering awalan pola kebetulan muncul di teks. Selama awalan itu jarang muncul, Brute Force hampir selalu berhenti di karakter pertama, sementara Rabin-Karp tetap membayar biaya hash yang sama di setiap posisi.</p>
+<p>Kasus Terburuk
+Hasil pada teks berulang ada di Tabel 2.
+Tabel 2. Kinerja kedua algoritma pada teks berulang (kasus terburuk)
+| Panjang teks | Brute Force (ms) | BF perbandingan | Rabin-Karp (ms) | RK perbandingan |
+| --- | --- | --- | --- | --- |
+| 5.000 | 23,7 | 252.450 | 1,2 | 0 |
+| 20.000 | 90,5 | 1.017.450 | 10,0 | 0 |
+Sumber: data hasil eksperimen. BF = Brute Force; RK = Rabin-Karp.</p>
+<p>Pada teks berulang, jumlah perbandingan Brute Force melonjak sampai sekitar satu juta untuk 20.000 karakter, kira-kira n × m, sesuai dengan kompleksitas O(nm). Rabin-Karp tidak melakukan perbandingan karakter sama sekali karena hash pola tidak pernah sama dengan hash jendela mana pun, sehingga ia sekitar 9 kali lebih cepat. Dalam kasus plagiarisme, teks yang sangat repetitif, seperti tabel, daftar, atau kode yang berulang, bisa mendekati kondisi ini (Prechelt et al., 2002).</p>
+<p>Pengaruh Modulus Hash
+Pengaruh nilai modulus terhadap kinerja Rabin-Karp dirangkum di Tabel 3.
+Tabel 3. Pengaruh modulus hash terhadap kinerja Rabin-Karp
+| Modulus Q | Spurious hit | Perbandingan karakter | Waktu (ms) |
+| --- | --- | --- | --- |
+| 101 | 1.409 | 1.494 | 28,4 |
+| 10.007 | 12 | 47 | 29,8 |
+| 1.000.003 | 0 | 35 | 34,4 |
+Sumber: data hasil eksperimen.</p>
+<p>Modulus kecil menyebabkan banyak tabrakan hash, sehingga Rabin-Karp sering harus memverifikasi lewat perbandingan karakter dan perilakunya mendekati Brute Force. Jumlah spurious hit turun tajam saat Q membesar, sesuai teori bahwa modulus berupa bilangan prima yang besar menekan peluang tabrakan (Goodrich &amp; Tamassia, 2014; Karp &amp; Rabin, 1987). Menariknya, waktu aktual tidak banyak berubah, karena biaya terbesar ada pada pembaruan hash, bukan verifikasi.
+Karena itu, modulus sebaiknya ditentukan sejak awal perancangan. Modulus besar hampir tidak menambah waktu pada pengujian ini, tetapi sangat mengurangi jumlah verifikasi, jadi hampir tidak ada alasan memakai modulus kecil kecuali untuk demonstrasi.</p>
+<p>Pencocokan Banyak Pola
+Untuk 20 pola pada dokumen 20.000 kata, Brute Force butuh sekitar 442 ms dan Rabin-Karp sekitar 730 ms ketika keduanya dijalankan sekali per pola. Di sini Rabin-Karp tidak untung karena tiap pola dipindai terpisah. Keunggulan sebenarnya pada banyak pola baru muncul bila semua pola yang sama panjang disimpan dalam hash set, sehingga satu kali pemindaian teks cukup untuk semua pola. Varian inilah yang mendasari teknik sidik jari dokumen seperti winnowing dan shingling (Broder, 1997; Manber, 1994; Schleimer et al., 2003). Varian ini belum kami uji dan menjadi pekerjaan lanjutan.</p>
+<p>Validasi Teori terhadap Data
+Rumus di bagian Kajian Teori bisa langsung diuji dengan hasil pengukuran. Kalau cocok, berarti angka-angka di atas bukan kebetulan, melainkan memang sifat algoritmanya.</p>
+<p>Kasus terburuk Brute Force. Untuk pola 50 huruf "a" yang diakhiri "b" (m = 51), setiap posisi menghabiskan tepat 51 perbandingan. Rumus (n − m + 1) × m memberi 4.950 × 51 = 252.450 untuk n = 5.000 dan 19.950 × 51 = 1.017.450 untuk n = 20.000. Keduanya sama persis dengan hasil pengukuran.</p>
+<p>Perbandingan per posisi pada teks alami. Dengan alfabet sekitar 27 simbol (26 huruf dan spasi), nilai teoretisnya σ/(σ − 1) = 27/26, atau sekitar 1,038. Perbandingannya dengan nilai terukur ada di Tabel 4.
+Tabel 4. Perbandingan karakter per posisi pada teks alami
+| Jumlah kata | Posisi yang dicoba | Perbandingan terukur | Per posisi |
+| --- | --- | --- | --- |
+| 1.000 | 6.878 | 7.171 | 1,043 |
+| 5.000 | 34.693 | 36.017 | 1,038 |
+| 20.000 | 139.827 | 144.656 | 1,035 |
+| 50.000 | 348.878 | 361.678 | 1,037 |
+Sumber: data hasil eksperimen.</p>
+<p>Semua nilai hanya berselisih sekitar 0,005 dari prediksi teori. Selisih sekecil itu wajar, karena huruf pada teks tidak benar-benar seragam dan spasi lebih sering muncul daripada satu huruf tertentu.</p>
+<p>Jumlah spurious hit Rabin-Karp. Teks pada skenario modulus punya sekitar 1,4 × 105 posisi, sehingga nilai harapan (n − m + 1)/Q bisa dibandingkan dengan hasil ukur, seperti di Tabel 5.
+Tabel 5. Jumlah spurious hit menurut teori dan hasil pengukuran
+| Modulus Q | Harapan teoretis | Terukur |
+| --- | --- | --- |
+| 101 | sekitar 1.386 | 1.409 |
+| 10.007 | sekitar 14 | 12 |
+| 1.000.003 | sekitar 0,14 | 0 |
+Sumber: data hasil eksperimen dan perhitungan teoretis.</p>
+<p>Nilai teoretis dan terukur berada pada orde yang sama di semua baris, dengan sedikit penyimpangan acak yang wajar untuk angka kecil. Jadi, anggapan bahwa hash tersebar merata cukup masuk akal untuk data ini.</p>
+<p>Bila hasil di atas dikembalikan ke rumusan masalah, jawabannya cukup jelas. Untuk pertanyaan pertama, akurasi kedua algoritma sama karena keduanya selalu memverifikasi kecocokan karakter demi karakter. Untuk pertanyaan kedua, efisiensi bergantung pada jenis teks: Brute Force lebih cepat pada teks alami, sedangkan Rabin-Karp lebih cepat pada teks berulang, dan panjang pola nyaris tidak mengubah gambaran ini. Untuk pertanyaan ketiga, modulus yang kecil memunculkan banyak tabrakan hash dan menghilangkan keuntungan Rabin-Karp, sedangkan modulus yang besar membuat tabrakan hampir tidak terjadi.</p>
+<p>Model Biaya dan Titik Impas
+Mengapa Rabin-Karp lebih lambat padahal perbandingannya jauh lebih sedikit? Jawabannya ada pada biaya per operasi. Pada teks 20.000 kata (139.860 posisi), Brute Force butuh 15,1 ms atau sekitar 108 ns per posisi, dan satu perbandingan karakter berbiaya sekitar 104 ns. Rabin-Karp butuh 35,1 ms atau sekitar 251 ns per posisi, karena tiap posisi menjalankan satu pengurangan, dua perkalian, satu penjumlahan, dan satu operasi modulo.</p>
+<p>Singkatnya, satu pembaruan hash kira-kira setara dengan 2,4 kali perbandingan karakter. Brute Force baru kalah kalau rata-rata perbandingannya per posisi melewati angka itu. Pada kasus terburuk, Brute Force melakukan sekitar 51 perbandingan per posisi dengan biaya sekitar 89 ns masing-masing, sedangkan Rabin-Karp hanya sekitar 500 ns per posisi, jadi selisihnya besar sekali. Dari kedua titik ini, titik impas diperkirakan ada di kisaran 2,5 sampai 5 perbandingan rata-rata per posisi. Angka ini hanya perkiraan kasar untuk implementasi Python yang kami pakai dan akan bergeser pada bahasa atau perangkat keras lain.</p>
+<p>Bagi deteksi plagiarisme, artinya teks bahasa alami hampir selalu jauh di bawah titik impas (sekitar 1,04 perbandingan per posisi). Keunggulan Rabin-Karp baru terasa ketika dokumen banyak memuat bagian berulang yang mirip dengan awalan pola, misalnya tabel, templat laporan, atau kode sumber berstruktur seragam (Prechelt et al., 2002).</p>
+<p>Implikasi bagi Deteksi Plagiarisme
+Untuk dokumen mahasiswa yang panjangnya ratusan sampai puluhan ribu kata dengan pola berupa kalimat, Brute Force sudah cukup cepat, lebih sederhana dibuat, dan lebih mudah di-debug. Rabin-Karp memberi kinerja yang lebih stabil di kasus terburuk dan menjadi dasar pendekatan multi-pola berskala besar. Namun, keduanya hanya mendeteksi penyalinan eksak. Perubahan satu karakter, penggantian sinonim, atau parafrase tidak akan terdeteksi, sehingga sistem praktis perlu menggabungkannya dengan normalisasi teks (misalnya huruf kecil semua dan tanda baca dihapus) atau pencocokan hampiran (Navarro, 2001; Potthast et al., 2010).</p>
+<p>Kalau diterapkan, temuan di atas bisa dijadikan langkah sederhana. Pertama, dokumen dinormalisasi supaya perbedaan huruf besar dan tanda baca tidak menggagalkan kecocokan. Kedua, kalimat dari dokumen yang dicurigai dijadikan pola dan dicari di dokumen sumber dengan Brute Force, selama dokumennya pendek dan tidak banyak bagian berulang. Ketiga, bila jumlah sumber atau pola membesar, pencarian dialihkan ke Rabin-Karp dengan hash set agar semua pola diperiksa dalam sekali pemindaian. Langkah ini baru anjuran awal dan masih perlu diuji pada korpus nyata.</p>
+<p>Ringkasan Temuan
+Kalau semua hasil dilihat bersama, kedua algoritma tidak bisa dinilai dari satu ukuran saja. Dari jumlah perbandingan karakter, Rabin-Karp selalu unggul, baik pada teks alami (28 sampai 39 perbandingan, dibandingkan lebih dari 7.000 pada teks terkecil) maupun pada teks berulang (nol, dibandingkan lebih dari satu juta). Dari waktu aktual, hasilnya terbalik pada teks alami karena setiap posisi menanggung biaya hitung hash, tetapi kembali berpihak pada Rabin-Karp ketika teks sangat repetitif. Jadi, karakter data masukan sama pentingnya dengan pilihan algoritma, dan jenis dokumen yang akan diperiksa sebaiknya dikenali dulu sebelum memilih metode.</p>
+<p>Temuan soal modulus juga memberi pelajaran. Rabin-Karp dengan modulus terlalu kecil praktis kehilangan keunggulannya, karena banyak posisi akhirnya tetap diverifikasi karakter demi karakter. Jadi, memilih modulus berupa bilangan prima yang besar bukan sekadar detail teknis, melainkan syarat agar keunggulan teoretis Rabin-Karp benar-benar terwujud dalam program.</p>
+<p>Satu hal lagi yang perlu diingat adalah bahwa angka-angka di atas berasal dari satu implementasi dan satu mesin. Karena itu, yang paling bisa dipercaya untuk dibawa ke konteks lain adalah pola hubungannya, yaitu bahwa Brute Force unggul saat awalan pola jarang cocok dan Rabin-Karp unggul saat awalan pola sering cocok, bukan besaran milidetiknya.</p>
+<p>Keterbatasan dan Ancaman terhadap Validitas
+Data uji bersifat sintetis dan acak, sehingga sebaran hurufnya berbeda dari bahasa Indonesia yang sebenarnya. Waktu eksekusi juga dipengaruhi oleh Python sebagai bahasa terinterpretasi dan oleh perangkat keras yang tidak distandarkan. Pengujian pada korpus nyata, misalnya kumpulan makalah, masih diperlukan agar hasilnya lebih bisa digeneralisasi. Ancaman terhadap validitasnya adalah sebagai berikut.</p>
+<p>Validitas internal. Waktu eksekusi diukur tiga kali pada satu mesin, jadi masih dipengaruhi beban sistem. Jumlah perbandingan karakter dan spurious hit tidak terpengaruh karena keduanya hitungan deterministik.
+Validitas konstruk. Penelitian ini mengukur efisiensi, bukan mutu deteksi. Karena kedua algoritma bersifat eksak, ukuran mutu seperti precision dan recall sama untuk keduanya pada penyalinan langsung, dan akan sama-sama turun pada parafrase (Potthast et al., 2010).
+Validitas eksternal. Kosakata acak seragam dan pola salinan sempurna belum mewakili makalah mahasiswa sebenarnya, yang penuh frasa umum (misalnya "berdasarkan hasil penelitian") dan sebaran hurufnya tidak seragam. Pola yang jauh lebih pendek daripada satu kalimat juga akan menghasilkan banyak kecocokan yang bukan plagiarisme.
+Pembanding. Fungsi pencarian bawaan pustaka bahasa pemrograman biasanya sudah dioptimalkan dengan algoritma lain dan ditulis dalam bahasa terkompilasi, jadi tidak adil dibandingkan dengan implementasi Python murni di penelitian ini. Penelitian lanjutan sebaiknya memakai bahasa terkompilasi yang sama untuk semua algoritma, ditambah KMP dan Boyer-Moore (Boyer &amp; Moore, 1977; Knuth et al., 1977).</p>
+<p>SIMPULAN
+Brute Force dan Rabin-Karp menemukan kecocokan yang sama persis, jadi keduanya setara dalam akurasi untuk pencocokan eksak. Pada teks bahasa alami, Brute Force sekitar 2,2 kali lebih cepat karena rata-rata hanya butuh sekitar 1,03 perbandingan per posisi, meskipun Rabin-Karp memakai perbandingan karakter yang jauh lebih sedikit. Sebaliknya, pada kasus terburuk berupa teks berulang, Rabin-Karp sekitar 9 kali lebih cepat dan terhindar dari lonjakan sekitar satu juta perbandingan yang dialami Brute Force. Pilihan modulus hash juga menentukan: modulus 101 menghasilkan 1.409 spurious hit, sedangkan modulus 1.000.003 tidak menghasilkan satu pun.</p>
+<p>Berdasarkan temuan ini, kami menyarankan Brute Force untuk deteksi sederhana pada dokumen pendek, dan Rabin-Karp dengan modulus besar untuk teks berulang atau pencocokan multi-pola berbasis hash set. Penelitian selanjutnya bisa menguji korpus nyata, algoritma KMP dan Boyer-Moore (Boyer &amp; Moore, 1977; Knuth et al., 1977), serta teknik winnowing (Schleimer et al., 2003).</p>
+<p>DAFTAR PUSTAKA
+Boyer, R. S., &amp; Moore, J. S. (1977). A fast string searching algorithm. Communications of the ACM, 20(10), 762–772.
+Broder, A. Z. (1997). On the resemblance and containment of documents. Proceedings of Compression and Complexity of Sequences, 21–29.
+Cormen, T. H., Leiserson, C. E., Rivest, R. L., &amp; Stein, C. (2022). Introduction to algorithms (4th ed.). MIT Press.
+Goodrich, M. T., &amp; Tamassia, R. (2014). Algorithm design and applications. Wiley.
+Gusfield, D. (1997). Algorithms on strings, trees, and sequences. Cambridge University Press.
+Karp, R. M., &amp; Rabin, M. O. (1987). Efficient randomized pattern-matching algorithms. IBM Journal of Research and Development, 31(2), 249–260.
+Knuth, D. E., Morris, J. H., &amp; Pratt, V. R. (1977). Fast pattern matching in strings. SIAM Journal on Computing, 6(2), 323–350.
+Levitin, A. (2012). Introduction to the design and analysis of algorithms (3rd ed.). Pearson.
+Manber, U. (1994). Finding similar files in a large file system. Proceedings of the USENIX Winter Technical Conference, 1–10.
+Maurer, H., Kappe, F., &amp; Zaka, B. (2006). Plagiarism – A survey. Journal of Universal Computer Science, 12(8), 1050–1084.
+Navarro, G. (2001). A guided tour to approximate string matching. ACM Computing Surveys, 33(1), 31–88.
+Potthast, M., Stein, B., Barrón-Cedeño, A., &amp; Rosso, P. (2010). An evaluation framework for plagiarism detection. Proceedings of COLING 2010, 997–1005.
+Prechelt, L., Malpohl, G., &amp; Philippsen, M. (2002). Finding plagiarisms among a set of programs with JPlag. Journal of Universal Computer Science, 8(11), 1016–1038.
+Schleimer, S., Wilkerson, D. S., &amp; Aiken, A. (2003). Winnowing: Local algorithms for document fingerprinting. Proceedings of the ACM SIGMOD International Conference on Management of Data, 76–85.</p>
+</body>
+</html>
